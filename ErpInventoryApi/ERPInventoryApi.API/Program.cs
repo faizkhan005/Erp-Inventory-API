@@ -1,4 +1,5 @@
 using ERPInventoryApi.Application.Interfaces;
+using ERPInventoryApi.Application.Services;
 using ERPInventoryApi.Infrastructure.Data;
 using ERPInventoryApi.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ try
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
     builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
+    builder.Services.AddScoped<ICategoryService, CategoryService>();
 
     // Health checks
     builder.Services.AddHealthChecks()

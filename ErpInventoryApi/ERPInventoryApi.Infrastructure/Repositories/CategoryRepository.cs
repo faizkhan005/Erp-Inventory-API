@@ -40,8 +40,8 @@ public class CategoryRepository : ICategoryRepository
     public async Task UpdateCategory(Category category)
     {
         Category existingCategory = await _dbContext.Categories.FirstOrDefaultAsync(c => c.ID == category.ID) ?? throw new Exception("Entity Not Found");
-        existingCategory.Name = category.Name;
-        existingCategory.Description = category.Description;
+        existingCategory.Name = category.Name ?? existingCategory.Name;
+        existingCategory.Description = category.Description ?? existingCategory.Description;
         existingCategory.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
     }

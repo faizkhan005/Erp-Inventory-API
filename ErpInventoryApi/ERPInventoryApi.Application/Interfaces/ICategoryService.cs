@@ -10,7 +10,7 @@ public interface ICategoryService
 
     Task AddCategory(CategoryRequestDto categoryRequestDto);
 
-    Task UpdateCategory(CategoryRequestDto categoryRequestDto);
+    Task UpdateCategory(Guid Id, CategoryRequestDto categoryRequestDto);
 
     Task DeleteCategory(Guid categoryID);
 }

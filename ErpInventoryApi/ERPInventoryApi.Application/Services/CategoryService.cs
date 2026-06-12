@@ -44,16 +44,22 @@ public class CategoryService : ICategoryService
         return new CategoryResponseDto(category.ID, category.Name, category.Description);
     }
 
-    public Task UpdateCategory(CategoryRequestDto categoryRequestDto)
+    public async Task UpdateCategory(Guid Id,CategoryRequestDto categoryRequestDto)
     {
-       throw new NotImplementedException();
-
-
+        if (!Validate(categoryRequestDto))
+            throw new Exception("Invalid category data.");
+        Category categoryToUpdate = new()
+        {
+            ID = Id,
+            Name = categoryRequestDto.Name,
+            Description = categoryRequestDto.Description
+        };
+        await _categoryRepository.UpdateCategory(categoryToUpdate);
     }
 
-    private bool Validate(CategoryRequestDto category) 
+    private static bool Validate(CategoryRequestDto category) 
     {
-        if (string.IsNullOrEmpty(category.Name))
+        if (string.IsNullOrEmpty(category.Name) || string.IsNullOrEmpty(category.Description))
             return false;
         return true;
     }
