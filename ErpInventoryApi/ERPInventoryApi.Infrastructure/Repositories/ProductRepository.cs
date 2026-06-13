@@ -21,7 +21,8 @@ public class ProductRepository : IProductRepository
     public async Task DeleteById(Guid id)
     {
         var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.ID == id) ?? throw new Exception("Entity Not Found");
-        _dbContext.Products.Remove(product);
+        product.IsDeleted = true;
+        product.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
     }
 
@@ -43,6 +44,7 @@ public class ProductRepository : IProductRepository
         prod.Price = newProduct.Price != 0 ? newProduct.Price : prod.Price;
         prod.StockQuantity = newProduct.StockQuantity != 0 ? newProduct.StockQuantity : prod.StockQuantity;
         prod.ReorderPoint = newProduct.ReorderPoint != 0 ? newProduct.ReorderPoint : prod.ReorderPoint;
+        prod.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
     }
 }
