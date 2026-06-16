@@ -1,11 +1,13 @@
 ﻿using ERPInventoryApi.Application.DTOs;
 using ERPInventoryApi.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERPInventoryApi.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class CategoriesController : ControllerBase
 {
     private readonly ICategoryService _categoryService;
@@ -20,7 +22,7 @@ public class CategoriesController : ControllerBase
         return CreatedAtAction(nameof(GetAllCategories), response);
     }
 
-    [HttpGet]
+    [HttpGet("{categoryID}")]
     public async Task<IActionResult> GetCategoryById(Guid categoryID)
     {
         CategoryResponseDto response = await _categoryService.GetById(categoryID);
@@ -34,14 +36,15 @@ public class CategoriesController : ControllerBase
         return CreatedAtAction(nameof(CreateCategory), new { success = "Successfully Created new Category" }, categoryRequestDto);
     }
 
-    [HttpPut]
+    [HttpPut("{categoryID}")]
     public async Task<IActionResult> UpdateCategory(Guid categoryID, [FromBody] CategoryRequestDto categoryRequestDto)
     {
         await _categoryService.UpdateCategory(categoryID, categoryRequestDto);
         return CreatedAtAction(nameof(UpdateCategory), new { success = $"Successfully Updated Category {categoryID}" }, categoryRequestDto);
     }
 
-    [HttpDelete]
+    [HttpDelete("{categoryID}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteCategory(Guid categoryID)
     {
         await _categoryService.DeleteCategory(categoryID);
