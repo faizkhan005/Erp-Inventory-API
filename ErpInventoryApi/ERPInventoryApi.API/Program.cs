@@ -1,10 +1,15 @@
+using ERPInventoryApi.API.Middleware;
 using ERPInventoryApi.Application.Interfaces;
 using ERPInventoryApi.Application.Services;
 using ERPInventoryApi.Infrastructure.Data;
 using ERPInventoryApi.Infrastructure.Repositories;
+using ERPInventoryApi.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Text;
 
 Log. Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -31,6 +36,33 @@ try
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+    // JWT Authentication 
+    var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+    var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+            ClockSkew = TimeSpan.Zero // no grace period on expiry
+        };
+    });
+
+    builder.Services.AddAuthorization();
+
+
     // Dependency Injection for Repositories
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -41,6 +73,7 @@ try
     builder.Services.AddScoped<IProductService, ProductService>();
     builder.Services.AddScoped<IWarehouseService, WarehouseService>();
     builder.Services.AddScoped<ICategoryService, CategoryService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
 
     // Health checks
     builder.Services.AddHealthChecks()
@@ -54,8 +87,15 @@ try
         app.MapScalarApiReference();
     }
 
-    app.UseSerilogRequestLogging();
-    app.UseAuthorization();
+    app.UseMiddleware<CorrelationIdMiddleware>();    // 1. Attach trace ID first
+    app.UseMiddleware<RequestTimingMiddleware>();    // 2. Start clock
+    app.UseMiddleware<GlobalExceptionMiddleware>();  // 3. Catch all exceptions
+    app.UseMiddleware<RequestLoggingMiddleware>();   // 4. Log request/response
+
+
+    app.UseSerilogRequestLogging();                  // Serilog's built-in HTTP log
+    app.UseAuthentication();                         // 5. Validate JWT
+    app.UseAuthorization();                          // 6. Enforce [Authorize]
     app.MapControllers();
     app.MapHealthChecks("/health");
 
