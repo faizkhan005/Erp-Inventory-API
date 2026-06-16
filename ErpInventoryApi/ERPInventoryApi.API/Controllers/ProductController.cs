@@ -1,12 +1,13 @@
 ﻿using ERPInventoryApi.Application.DTOs;
 using ERPInventoryApi.Application.Interfaces;
-using ERPInventoryApi.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERPInventoryApi.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class ProductController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -23,7 +24,7 @@ public class ProductController : ControllerBase
         return CreatedAtAction(nameof(GetAllProducts), response);
     }
 
-    [HttpGet]
+    [HttpGet("{productID}")]
     public async Task<IActionResult> GetProductById(Guid productID)
     {
         ProductResponseDto response = await _productService.GetById(productID);
@@ -37,14 +38,15 @@ public class ProductController : ControllerBase
         return CreatedAtAction(nameof(CreateProduct), new { success = "Successfully Created new Product" }, productRequestDto);
     }
 
-    [HttpPut]
+    [HttpPut("{productID}")]
     public async Task<IActionResult> UpdateProduct(Guid productID, [FromBody] ProductRequestDto productRequestDto)
     {
         await _productService.UpdateProduct(productID, productRequestDto);
         return CreatedAtAction(nameof(UpdateProduct), new { success = $"Successfully Updated Product {productID}" }, productRequestDto);
     }
 
-    [HttpDelete]
+    [HttpDelete("{productID}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteProduct(Guid productID)
     {
         await _productService.DeleteProduct(productID);

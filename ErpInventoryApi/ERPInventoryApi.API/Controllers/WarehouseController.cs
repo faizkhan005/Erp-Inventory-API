@@ -1,11 +1,13 @@
 ﻿using ERPInventoryApi.Application.DTOs;
 using ERPInventoryApi.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERPInventoryApi.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class WarehouseController : ControllerBase
 {
     private readonly IWarehouseService _warehouseService;
@@ -22,7 +24,7 @@ public class WarehouseController : ControllerBase
         return CreatedAtAction(nameof(GetAllWareHouse), response);
     }
 
-    [HttpGet]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetWarehouseById(Guid Id) 
     {
         WarehouseResponseDto response = await _warehouseService.GetById(Id);
@@ -30,20 +32,21 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateWarehouse(Guid Id, [FromBody] WarehouseRequestDto request) 
+    public async Task<IActionResult> CreateWarehouse([FromBody] WarehouseRequestDto request) 
     {
         await _warehouseService.AddWarehouse(request);
         return CreatedAtAction(nameof(CreateWarehouse), new { success = "Successfully Created new Warehouse" }, request);
     }
 
-    [HttpPut]
+    [HttpPut("{Id}")]
     public async Task<IActionResult> UpdateWareHouse(Guid Id, [FromBody] WarehouseRequestDto request) 
     {
         await _warehouseService.UpdateWarehouse(Id, request);
         return CreatedAtAction(nameof(UpdateWareHouse), new { success = $"Successfully Updated Warehouse {Id}" }, request);
     }
 
-    [HttpDelete]
+    [HttpDelete("{Id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteWarehouse(Guid Id)
     {
         await _warehouseService.DeleteWarehouse(Id);
