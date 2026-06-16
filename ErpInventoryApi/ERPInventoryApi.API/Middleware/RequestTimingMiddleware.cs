@@ -25,8 +25,11 @@ public class RequestTimingMiddleware
             sw.Stop();
             var elapsed = sw.ElapsedMilliseconds;
 
-            // Add timing header so clients can see it too
-            context.Response.Headers["X-Response-Time-Ms"] = elapsed.ToString();
+            // Only set header if response hasn't started yet
+            if (!context.Response.HasStarted)
+            {
+                context.Response.Headers["X-Response-Time-Ms"] = elapsed.ToString();
+            }
 
             var level = elapsed > 1000 ? LogLevel.Warning : LogLevel.Information;
             _logger.Log(level,
