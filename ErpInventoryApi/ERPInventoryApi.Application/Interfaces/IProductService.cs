@@ -13,4 +13,6 @@ public interface IProductService
     Task UpdateProduct(Guid Id, ProductRequestDto productRequestDto);
 
     Task DeleteProduct(Guid productID);
+
+    Task<PagedResult<ProductResponseDto>> GetPagedAsync(ProductQueryParams queryParams);
 }

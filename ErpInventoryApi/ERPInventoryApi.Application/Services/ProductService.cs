@@ -27,14 +27,14 @@ public class ProductService : IProductService
     public async Task<List<ProductResponseDto>> GetAll()
     {
         List<Product> products = await _productRepository.GetAll();
-        List<ProductResponseDto> productResponseDtos = [.. products.Select(p => new ProductResponseDto(p.ID, p.Name,p.SKU, p.Description, p.Price, p.StockQuantity, p.ReorderPoint, p.CategoryId, p.WarehouseId, p.Category.Name, p.Warehouse.Name))];
+        List<ProductResponseDto> productResponseDtos = [.. products.Select(p => new ProductResponseDto(p.ID, p.Name,p.SKU, p.Description, p.Price, p.StockQuantity, p.ReorderPoint, p.CategoryId, p.Category.Name, p.WarehouseId, p.Warehouse.Name, p.CreatedAt, p.UpdatedAt))];
         return productResponseDtos;
     }
 
     public async Task<ProductResponseDto> GetById(Guid productID)
     {
         Product product = await _productRepository.GetById(productID) ?? throw new InvalidOperationException("Product not found");
-        return new ProductResponseDto(product.ID, product.Name, product.SKU, product.Description, product.Price, product.StockQuantity, product.ReorderPoint, product.CategoryId, product.WarehouseId, product.Category.Name, product.Warehouse.Name);
+        return new ProductResponseDto(product.ID, product.Name, product.SKU, product.Description, product.Price, product.StockQuantity, product.ReorderPoint, product.CategoryId, product.Category.Name, product.WarehouseId, product.Warehouse.Name, product.CreatedAt, product.UpdatedAt);
     }
 
     public Task UpdateProduct(Guid Id, ProductRequestDto productRequestDto)
@@ -68,5 +68,33 @@ public class ProductService : IProductService
         if(Id != Guid.Empty)
             product.ID = Id;
         return product;
+    }
+
+    public async Task<PagedResult<ProductResponseDto>> GetPagedAsync(ProductQueryParams queryParams)
+    {
+        var paged = await _productRepository.GetPagedAsync(queryParams);
+
+        var mappedItems = paged.Items
+            .Select(p => new ProductResponseDto(
+                Id: p.ID,
+                Name: p.Name,
+                SKU: p.SKU,
+                Description: p.Description,
+                Price: p.Price,
+                StockQuantity: p.StockQuantity,
+                ReorderPoint: p.ReorderPoint,
+                CategoryId: p.CategoryId,
+                CategoryName: p.Category.Name,
+                WarehouseId: p.WarehouseId,
+                WarehouseName: p.Warehouse.Name,
+                CreatedAt: p.CreatedAt,
+                UpdatedAt: p.UpdatedAt))
+            .ToList();
+
+        return new PagedResult<ProductResponseDto>
+        {
+            Items = mappedItems,
+            NextCursor = paged.NextCursor
+        };
     }
 }
