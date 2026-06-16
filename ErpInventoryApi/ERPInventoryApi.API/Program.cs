@@ -1,4 +1,5 @@
 using ERPInventoryApi.API.Middleware;
+using ERPInventoryApi.API.OpenAPI;
 using ERPInventoryApi.Application.Interfaces;
 using ERPInventoryApi.Application.Services;
 using ERPInventoryApi.Infrastructure.Data;
@@ -30,7 +31,10 @@ try
     //Add Service
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddOpenApi();
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    });
 
     // PostgreSQL + EF Core
     builder.Services.AddDbContext<AppDbContext>(options =>

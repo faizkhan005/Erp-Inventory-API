@@ -17,14 +17,14 @@ public class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Log request
+        // Log request 
         var safeHeaders = context.Request.Headers
             .Where(h => !SensitiveHeaders.Contains(h.Key))
             .ToDictionary(h => h.Key, h => h.Value.ToString());
 
-        context.Request.EnableBuffering(); // allow body to be read multiple times
+        context.Request.EnableBuffering();
         var requestBody = await ReadBodyAsync(context.Request.Body);
-        context.Request.Body.Position = 0;  // rewind for the actual handler
+        context.Request.Body.Position = 0;
 
         _logger.LogInformation(
             "HTTP {Method} {Path} | Headers: {Headers} | Body: {Body}",
@@ -33,23 +33,33 @@ public class RequestLoggingMiddleware
             safeHeaders,
             requestBody);
 
-        // Capture response body
+        // Capture response body 
         var originalBody = context.Response.Body;
-        await using var memoryStream = new MemoryStream();
+        var memoryStream = new MemoryStream(); // ← no "await using" — we control disposal
         context.Response.Body = memoryStream;
 
-        await _next(context);
+        try
+        {
+            await _next(context);
 
-        memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
-        memoryStream.Position = 0;
-        await memoryStream.CopyToAsync(originalBody);
-        context.Response.Body = originalBody;
+            memoryStream.Position = 0;
+            var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
 
-        _logger.LogInformation(
-            "HTTP {StatusCode} | Response Body: {Body}",
-            context.Response.StatusCode,
-            responseBody.Length > 500 ? responseBody[..500] + "…" : responseBody);
+            _logger.LogInformation(
+                "HTTP {StatusCode} | Response Body: {Body}",
+                context.Response.StatusCode,
+                responseBody.Length > 500 ? responseBody[..500] + "…" : responseBody);
+
+            memoryStream.Position = 0;
+            await memoryStream.CopyToAsync(originalBody);
+        }
+        finally
+        {
+            // Restore original stream before disposal so GlobalExceptionMiddleware
+            // can still write to it if something goes wrong
+            context.Response.Body = originalBody;
+            await memoryStream.DisposeAsync();
+        }
     }
 
     private static async Task<string> ReadBodyAsync(Stream body)

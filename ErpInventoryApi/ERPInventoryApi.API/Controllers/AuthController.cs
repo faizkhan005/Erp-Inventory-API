@@ -1,11 +1,13 @@
 ﻿using ERPInventoryApi.Application.DTOs.Auth;
 using ERPInventoryApi.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERPInventoryApi.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]   // ← override the global [Authorize] for auth endpoints
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
