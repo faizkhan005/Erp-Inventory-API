@@ -37,6 +37,11 @@ try
     builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
     builder.Services.AddScoped<ICategoryService, CategoryService>();
 
+    //DI for Services
+    builder.Services.AddScoped<IProductService, ProductService>();
+    builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+    builder.Services.AddScoped<ICategoryService, CategoryService>();
+
     // Health checks
     builder.Services.AddHealthChecks()
         .AddDbContextCheck<AppDbContext>();
