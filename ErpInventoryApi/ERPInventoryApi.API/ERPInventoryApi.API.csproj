@@ -27,8 +27,4 @@
     <ProjectReference Include="..\ERPInventoryApi.Infrastructure\ERPInventoryApi.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Middleware\" />
-  </ItemGroup>
-
 </Project>
