@@ -13,4 +13,6 @@ public interface IWarehouseService
     Task UpdateWarehouse(Guid Id, WarehouseRequestDto warehouseRequestDto);
 
     Task DeleteWarehouse(Guid warehouseID);
+
+    Task<PagedResult<WarehouseResponseDto>> GetPagedAsync(WarehouseQueryParams queryParams);
 }

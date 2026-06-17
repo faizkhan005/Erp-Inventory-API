@@ -1,4 +1,5 @@
 ﻿using ERPInventoryApi.Application.DTOs;
+using ERPInventoryApi.Application.Helper;
 using ERPInventoryApi.Application.Interfaces;
 using ERPInventoryApi.Domain.Entities;
 
@@ -7,21 +8,27 @@ namespace ERPInventoryApi.Application.Services;
 public class ProductService : IProductService
 {
     private readonly IProductRepository _productRepository;
-    public ProductService(IProductRepository productRepository)
+    private readonly ICacheService _cache;
+    public ProductService(IProductRepository productRepository,
+        ICacheService cache)
     {
         _productRepository = productRepository;
+        _cache = cache;
     }
-    public Task AddProduct(ProductRequestDto productRequestDto)
+    public async Task AddProduct(ProductRequestDto productRequestDto)
     {
         if (!Validate(productRequestDto))
             throw new ArgumentException("Invalid Product Data");
         Product newProd = RequestToProduct(productRequestDto, Guid.Empty);
-        return _productRepository.CreateNewProduct(newProd);
+        await _productRepository.CreateNewProduct(newProd);
+        await _cache.RemoveByPrefixAsync(CacheKeys.ProductsPrefix);
     }
 
     public async Task DeleteProduct(Guid productID)
     {
         await _productRepository.DeleteById(productID);
+        await _cache.RemoveAsync(CacheKeys.ProductById(productID));
+        await _cache.RemoveByPrefixAsync(CacheKeys.ProductsPrefix);
     }
 
     public async Task<List<ProductResponseDto>> GetAll()
@@ -33,16 +40,27 @@ public class ProductService : IProductService
 
     public async Task<ProductResponseDto> GetById(Guid productID)
     {
-        Product product = await _productRepository.GetById(productID) ?? throw new InvalidOperationException("Product not found");
-        return new ProductResponseDto(product.ID, product.Name, product.SKU, product.Description, product.Price, product.StockQuantity, product.ReorderPoint, product.CategoryId, product.Category.Name, product.WarehouseId, product.Warehouse.Name, product.CreatedAt, product.UpdatedAt);
+        var key = CacheKeys.ProductById(productID);
+        var cached = await _cache.GetAsync<ProductResponseDto>(key);
+        if (cached is not null) return cached;
+
+        var product = await _productRepository.GetById(productID)??throw new Exception("Product not found");
+
+        var result = MapToDto(product);
+        await _cache.SetAsync(key, result, TimeSpan.FromMinutes(10));
+        return result;
     }
 
-    public Task UpdateProduct(Guid Id, ProductRequestDto productRequestDto)
+    public async Task UpdateProduct(Guid Id, ProductRequestDto productRequestDto)
     {
         if(!Validate(productRequestDto))
             throw new Exception("Invalid product data.");
         Product productToUpdate = RequestToProduct(productRequestDto, Id);
-        return _productRepository.UpdateProduct(productToUpdate);
+
+        await _productRepository.UpdateProduct(productToUpdate);
+        // Invalidate specific item + all paged results
+        await _cache.RemoveAsync(CacheKeys.ProductById(Id));
+        await _cache.RemoveByPrefixAsync(CacheKeys.ProductsPrefix);
     }
 
     private static bool Validate(ProductRequestDto productRequestDto)
@@ -72,29 +90,37 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductResponseDto>> GetPagedAsync(ProductQueryParams queryParams)
     {
+        var key = CacheKeys.ProductsPaged(queryParams);
+        var cached = await _cache.GetAsync<PagedResult<ProductResponseDto>>(key);
+        if (cached is not null) return cached;
+
         var paged = await _productRepository.GetPagedAsync(queryParams);
 
-        var mappedItems = paged.Items
-            .Select(p => new ProductResponseDto(
-                Id: p.ID,
-                Name: p.Name,
-                SKU: p.SKU,
-                Description: p.Description,
-                Price: p.Price,
-                StockQuantity: p.StockQuantity,
-                ReorderPoint: p.ReorderPoint,
-                CategoryId: p.CategoryId,
-                CategoryName: p.Category.Name,
-                WarehouseId: p.WarehouseId,
-                WarehouseName: p.Warehouse.Name,
-                CreatedAt: p.CreatedAt,
-                UpdatedAt: p.UpdatedAt))
-            .ToList();
+        var result = MapToPagedResult(paged);
 
-        return new PagedResult<ProductResponseDto>
-        {
-            Items = mappedItems,
-            NextCursor = paged.NextCursor
-        };
+        await _cache.SetAsync(key, result, TimeSpan.FromMinutes(5));
+        return result;
     }
+
+    // Mapping helpers
+    private static ProductResponseDto MapToDto(Product p) => new(
+        Id: p.ID,
+        Name: p.Name,
+        SKU: p.SKU,
+        Description: p.Description,
+        Price: p.Price,
+        StockQuantity: p.StockQuantity,
+        ReorderPoint: p.ReorderPoint,
+        CategoryId: p.CategoryId,
+        CategoryName: p.Category?.Name ?? string.Empty,
+        WarehouseId: p.WarehouseId,
+        WarehouseName: p.Warehouse?.Name ?? string.Empty,
+        CreatedAt: p.CreatedAt,
+        UpdatedAt: p.UpdatedAt);
+
+    private static PagedResult<ProductResponseDto> MapToPagedResult(PagedResult<Product> paged) => new()
+    {
+        Items = [.. paged.Items.Select(MapToDto)],
+        NextCursor = paged.NextCursor
+    };
 }

@@ -45,6 +45,14 @@ public class WarehouseController : ControllerBase
         return CreatedAtAction(nameof(UpdateWareHouse), new { success = $"Successfully Updated Warehouse {Id}" }, request);
     }
 
+    [HttpGet("filter")]
+    [ProducesResponseType(typeof(PagedResult<WarehouseResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] WarehouseQueryParams queryParams)
+    {
+        var result = await _warehouseService.GetPagedAsync(queryParams);
+        return Ok(result);
+    }
+
     [HttpDelete("{Id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteWarehouse(Guid Id)

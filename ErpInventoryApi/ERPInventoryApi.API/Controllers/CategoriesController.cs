@@ -43,6 +43,14 @@ public class CategoriesController : ControllerBase
         return CreatedAtAction(nameof(UpdateCategory), new { success = $"Successfully Updated Category {categoryID}" }, categoryRequestDto);
     }
 
+    [HttpGet("filter")]
+    [ProducesResponseType(typeof(PagedResult<CategoryResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] CategoryQueryParams queryParams)
+    {
+        var result = await _categoryService.GetPagedAsync(queryParams);
+        return Ok(result);
+    }
+
     [HttpDelete("{categoryID}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteCategory(Guid categoryID)

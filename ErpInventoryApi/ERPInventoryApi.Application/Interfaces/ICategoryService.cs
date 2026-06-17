@@ -13,4 +13,6 @@ public interface ICategoryService
     Task UpdateCategory(Guid Id, CategoryRequestDto categoryRequestDto);
 
     Task DeleteCategory(Guid categoryID);
+
+    Task<PagedResult<CategoryResponseDto>> GetPagedAsync(CategoryQueryParams queryParams);
 }

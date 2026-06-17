@@ -49,7 +49,7 @@ public class ProductController : ControllerBase
     /// Get a paginated, filtered, sorted list of products.
     /// Pass the returned nextCursor as the cursor param to get the next page.
     /// </summary>
-    [HttpGet]
+    [HttpGet("filter")]
     [ProducesResponseType(typeof(PagedResult<ProductResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] ProductQueryParams queryParams)
     {

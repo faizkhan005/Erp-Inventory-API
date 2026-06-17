@@ -1,4 +1,5 @@
-﻿using ERPInventoryApi.Application.Interfaces;
+﻿using ERPInventoryApi.Application.DTOs;
+using ERPInventoryApi.Application.Interfaces;
 using ERPInventoryApi.Domain.Entities;
 using ERPInventoryApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -44,5 +45,77 @@ public class CategoryRepository : ICategoryRepository
         existingCategory.Description = category.Description ?? existingCategory.Description;
         existingCategory.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<PagedResult<Category>> GetPagedAsync(CategoryQueryParams q)
+    {
+        var query = _dbContext.Categories
+            .Include(c => c.Products)   // for ProductCount
+            .AsQueryable();
+
+        // Filtering 
+        if (!string.IsNullOrWhiteSpace(q.Search))
+        {
+            var search = q.Search.Trim().ToLower();
+            query = query.Where(c =>
+                c.Name.ToLower().Contains(search) ||
+                c.Description.ToLower().Contains(search));
+        }
+
+        // Sorting 
+        var isAsc = q.SortOrder.ToLower() == "asc";
+
+        IOrderedQueryable<Category> orderedQuery = q.SortBy.ToLower() switch
+        {
+            "name" => isAsc ? query.OrderBy(c => c.Name)
+                            : query.OrderByDescending(c => c.Name),
+            _ => isAsc ? query.OrderBy(c => c.CreatedAt)
+                            : query.OrderByDescending(c => c.CreatedAt)
+        };
+
+        orderedQuery = orderedQuery.ThenBy(c => c.ID);
+
+        query = orderedQuery;
+
+        // Cursor
+        if (q.Cursor.HasValue)
+        {
+            var cursorItem = await _dbContext.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.ID == q.Cursor.Value);
+
+            if (cursorItem != null)
+            {
+                query = q.SortBy.ToLower() switch
+                {
+                    "name" => isAsc
+                        ? query.Where(c => c.Name.CompareTo(cursorItem.Name) > 0
+                            || (c.Name == cursorItem.Name && c.ID > cursorItem.ID))
+                        : query.Where(c => c.Name.CompareTo(cursorItem.Name) < 0
+                            || (c.Name == cursorItem.Name && c.ID > cursorItem.ID)),
+
+                    _ => isAsc
+                        ? query.Where(c => c.CreatedAt > cursorItem.CreatedAt
+                            || (c.CreatedAt == cursorItem.CreatedAt && c.ID > cursorItem.ID))
+                        : query.Where(c => c.CreatedAt < cursorItem.CreatedAt
+                            || (c.CreatedAt == cursorItem.CreatedAt && c.ID > cursorItem.ID))
+                };
+            }
+        }
+
+        // Fetch + detect next page
+        var items = await query
+            .AsNoTracking()
+            .Take(q.PageSize + 1)
+            .ToListAsync();
+
+        var hasNextPage = items.Count > q.PageSize;
+        if (hasNextPage) items.RemoveAt(items.Count - 1);
+
+        return new PagedResult<Category>
+        {
+            Items = items,
+            NextCursor = hasNextPage ? items[^1].ID : null
+        };
     }
 }

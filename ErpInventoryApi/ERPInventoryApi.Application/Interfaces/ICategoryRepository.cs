@@ -1,4 +1,5 @@
-﻿using ERPInventoryApi.Domain.Entities;
+﻿using ERPInventoryApi.Application.DTOs;
+using ERPInventoryApi.Domain.Entities;
 
 namespace ERPInventoryApi.Application.Interfaces;
 
@@ -13,4 +14,6 @@ public interface ICategoryRepository
     Task<List<Category>> GetAll();
 
     Task<Category> GetById(Guid categoryID);
+
+    Task<PagedResult<Category>> GetPagedAsync(CategoryQueryParams queryParams);
 }

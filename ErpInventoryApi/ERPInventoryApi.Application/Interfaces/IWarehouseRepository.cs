@@ -1,4 +1,5 @@
-﻿using ERPInventoryApi.Domain.Entities;
+﻿using ERPInventoryApi.Application.DTOs;
+using ERPInventoryApi.Domain.Entities;
 
 namespace ERPInventoryApi.Application.Interfaces;
 
@@ -13,4 +14,6 @@ public interface IWarehouseRepository
     Task<Warehouse?> GetById(Guid warehouseID);
     
     Task DeleteById(Guid warehouseID);
+
+    Task<PagedResult<Warehouse>> GetPagedAsync(WarehouseQueryParams queryParams);
 }
