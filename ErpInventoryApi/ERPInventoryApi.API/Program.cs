@@ -14,7 +14,7 @@ using Serilog;
 using StackExchange.Redis;
 using System.Text;
 
-Log. Logger = new LoggerConfiguration()
+Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
@@ -114,13 +114,13 @@ try
     app.MapHealthChecks("/health");
 
     // Database seeding 
-    //if (app.Environment.IsDevelopment())
-    //{
-    //    using var scope = app.Services.CreateScope();
-    //    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    //    var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    //    await DatabaseSeeder.SeedAsync(db, seederLogger);
-    //}
+    if (app.Environment.IsDevelopment())
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        await DatabaseSeeder.SeedAsync(db, seederLogger);
+    }
 
     app.Run();
 }
@@ -128,7 +128,7 @@ catch (Exception ex)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
 }
-finally 
+finally
 {
     Log.CloseAndFlush();
 }
