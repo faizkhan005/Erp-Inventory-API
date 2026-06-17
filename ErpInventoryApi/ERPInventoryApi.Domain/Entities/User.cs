@@ -7,4 +7,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = "User"; // "Admin" | "User"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    //Navigation property for related refresh tokens
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

@@ -12,7 +12,10 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
 
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+
     public DbSet<User> Users => Set<User>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +60,35 @@ public class AppDbContext : DbContext
             entity.HasKey(w => w.ID);
             entity.Property(w => w.Name).IsRequired().HasMaxLength(100);
             entity.Property(w => w.Location).IsRequired().HasMaxLength(200);
+        });
+
+        // RefreshToken 
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(r => r.ID);
+
+            entity.Property(r => r.Token)
+                .IsRequired()
+                .HasMaxLength(256);
+
+            entity.Property(r => r.RevokedReason)
+                .HasMaxLength(100);
+
+            entity.Property(r => r.ReplacedByToken)
+                .HasMaxLength(256);
+
+            // Index on Token — every refresh lookup queries by this column
+            entity.HasIndex(r => r.Token)
+                .IsUnique();
+
+            // Index on UserId — RevokeAllUserTokensAsync queries by UserId
+            entity.HasIndex(r => r.UserId);
+
+            // Relationship — User has many RefreshTokens
+            entity.HasOne(r => r.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // delete tokens when user is deleted
         });
     }
 }
