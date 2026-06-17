@@ -1,4 +1,5 @@
-﻿using ERPInventoryApi.Domain.Entities;
+﻿using ERPInventoryApi.Application.DTOs;
+using ERPInventoryApi.Domain.Entities;
 
 namespace ERPInventoryApi.Application.Interfaces;
 
@@ -13,4 +14,6 @@ public interface IProductRepository
     Task<List<Product>> GetAll();
 
     Task DeleteById(Guid id);
+
+    Task<PagedResult<Product>> GetPagedAsync(ProductQueryParams queryParams);
 }

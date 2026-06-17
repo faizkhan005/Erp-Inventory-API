@@ -45,6 +45,18 @@ public class ProductController : ControllerBase
         return CreatedAtAction(nameof(UpdateProduct), new { success = $"Successfully Updated Product {productID}" }, productRequestDto);
     }
 
+    /// <summary>
+    /// Get a paginated, filtered, sorted list of products.
+    /// Pass the returned nextCursor as the cursor param to get the next page.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<ProductResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] ProductQueryParams queryParams)
+    {
+        var result = await _productService.GetPagedAsync(queryParams);
+        return Ok(result);
+    }
+
     [HttpDelete("{productID}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteProduct(Guid productID)
