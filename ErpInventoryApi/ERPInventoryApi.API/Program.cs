@@ -1,3 +1,4 @@
+using ERPInventoryApi.API;
 using ERPInventoryApi.API.Middleware;
 using ERPInventoryApi.API.OpenAPI;
 using ERPInventoryApi.Application.Interfaces;
@@ -102,6 +103,15 @@ try
     app.UseAuthorization();                          // 6. Enforce [Authorize]
     app.MapControllers();
     app.MapHealthChecks("/health");
+
+    // Database seeding 
+    if (app.Environment.IsDevelopment())
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        await DatabaseSeeder.SeedAsync(db, seederLogger);
+    }
 
     app.Run();
 }
