@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using StackExchange.Redis;
 using System.Text;
 
 Log. Logger = new LoggerConfiguration()
@@ -80,6 +81,14 @@ try
     builder.Services.AddScoped<ICategoryService, CategoryService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
 
+    var redisConnection = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException("Redis connection string is missing.");
+
+    builder.Services.AddSingleton<IConnectionMultiplexer>(
+        ConnectionMultiplexer.Connect(redisConnection));
+
+    builder.Services.AddSingleton<ICacheService, CacheService>();
+
     // Health checks
     builder.Services.AddHealthChecks()
         .AddDbContextCheck<AppDbContext>();
@@ -105,13 +114,13 @@ try
     app.MapHealthChecks("/health");
 
     // Database seeding 
-    if (app.Environment.IsDevelopment())
-    {
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        await DatabaseSeeder.SeedAsync(db, seederLogger);
-    }
+    //if (app.Environment.IsDevelopment())
+    //{
+    //    using var scope = app.Services.CreateScope();
+    //    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    //    var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    //    await DatabaseSeeder.SeedAsync(db, seederLogger);
+    //}
 
     app.Run();
 }
